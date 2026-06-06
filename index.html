@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Feeder Control GitHub Pages build | DEMO / PRO offline license -->
+<!-- Feeder Control GitHub Pages build | V7 NEW LICENSE SECRET -->
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Feeder Control PRO | TFL Edition</title>
+  <title>Feeder Control PRO | V7</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
@@ -390,6 +390,31 @@
     }
     .license-commercial-note b{color:var(--text)}
 
+  
+    .license-box.hidden-after-pro{
+      display:none !important;
+    }
+    .pro-mini-badge{
+      display:none;
+      margin:0 0 12px;
+      padding:10px 14px;
+      border-radius:999px;
+      width:max-content;
+      max-width:100%;
+      background:rgba(73,225,162,.14);
+      border:1px solid rgba(73,225,162,.38);
+      color:#b8ffe3;
+      font-family:JetBrains Mono,monospace;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+      box-shadow:0 12px 32px rgba(73,225,162,.08);
+    }
+    .pro-mini-badge.show{
+      display:block;
+    }
+
   </style>
 </head>
 <body>
@@ -578,6 +603,8 @@
         <p class="notice">În timpul partidei folosești doar butoanele mari: <b>Relansare</b>, <b>Pește prins</b>, <b>Ratat</b>, <b>Momire</b>, <b>Schimbă vadul</b>. Aplicația calculează în spate: kg pe juvelnic, timp activ pe vad, productivitate, recomandări și alarme de relansare de minimum 5 secunde.</p><p class="notice">Branding activ: <b>TFL Feeder Control</b> — logo în header și watermark mai vizibil în fundal.</p>
       </div>
     </section>
+
+    <div id="proMiniBadge" class="pro-mini-badge">PRO ACTIV</div>
 
     <div id="sessionFinishedBanner" class="session-finished-banner">Partidă terminată — salvează în istoric sau resetează partida</div>
 
@@ -820,8 +847,8 @@
     history:"feederControl_sessionHistory",
     settings:"feederControl_settings",
     mounts:"feederControl_mounts",
-    license:"feederControl_license",
-    device:"feederControl_deviceId"
+    license:"feederControl_license_v7",
+    device:"feederControl_deviceId_v7"
   };
   const $ = id => document.getElementById(id);
   const now = () => Date.now();
@@ -882,7 +909,7 @@
   }
 
   function expectedLicenseCode(deviceId){
-    const secret = "FEEDER_CONTROL_TFL_PRO_2026_MARIUS_PRIVATE_SALT";
+    const secret = "FC_TFL_PRO_79FA7F2F0ED92344D594AA31F44859A4DF936F1641742935_V7_PRIVATE";
     return simpleHash(`${secret}|${deviceId}|PRO`);
   }
 
@@ -913,8 +940,14 @@
       status.classList.toggle("pro", pro);
       status.classList.toggle("demo", !pro);
     }
+    const licenseBox = $("licenseBox");
+    if(licenseBox) licenseBox.classList.toggle("hidden-after-pro", pro);
+
+    const proMiniBadge = $("proMiniBadge");
+    if(proMiniBadge) proMiniBadge.classList.toggle("show", pro);
+
     if(notice) notice.style.display = pro ? "none" : "block";
-    if(removeBtn) removeBtn.style.display = pro ? "block" : "none";
+    if(removeBtn) removeBtn.style.display = "none";
 
     const demoWatermark = $("demoWatermark");
     if(demoWatermark) demoWatermark.classList.toggle("show", !pro);
