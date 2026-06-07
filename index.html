@@ -414,6 +414,26 @@
     .pro-mini-badge.show{
       display:block;
     }
+    .brand .pro-mini-badge{
+      margin:10px 0 0;
+    }
+
+  
+    .weigh-summary{
+      margin:10px 0;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(73,225,162,.08);
+      border:1px solid rgba(73,225,162,.22);
+      color:#dfffee;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .btn.weighBtn{
+      background:rgba(99,179,255,.16);
+      color:#d9eeff;
+      border:1px solid rgba(99,179,255,.38);
+    }
 
   </style>
 </head>
@@ -427,6 +447,7 @@
           <div>
             <h1>Feeder<br>Control</h1>
                         <div class="team-tag"><b>Team:</b> Tocile 1 Feeder Lake</div>
+            <div id="proMiniBadge" class="pro-mini-badge">PRO ACTIV</div>
           </div>
         </div>
         <div class="pill" id="saveStatus">autosave</div>
@@ -555,14 +576,7 @@
               </select>
             </div>
           </div>
-          <div class="grid2">
-            <div class="field">
-              <label>Mod pescuit</label>
-              <select id="setupRodMode">
-                <option value="one" selected>O lansetă</option>
-              </select>
-            </div>
-            <div class="field">
+          <div class="field">
               <label>Sunet alarmă</label>
               <select id="setupAlarmSound">
                 <option value="long" selected>Lungă 5 secunde</option>
@@ -570,7 +584,6 @@
                 <option value="wind">Vânt / concurs 7 secunde</option>
               </select>
             </div>
-          </div>
           <div class="grid2">
             <div class="field">
               <label>Tip sesiune</label>
@@ -604,8 +617,6 @@
       </div>
     </section>
 
-    <div id="proMiniBadge" class="pro-mini-badge">PRO ACTIV</div>
-
     <div id="sessionFinishedBanner" class="session-finished-banner">Partidă terminată — salvează în istoric sau resetează partida</div>
 
     <main id="mainApp" class="main">
@@ -616,7 +627,7 @@
               <div>
                 <span class="small">Vad activ</span>
                 <p class="active-spot" id="liveSpot">Vad A</p>
-                <div class="small" id="liveMode">Mod o lansetă • celelalte vaduri sunt înghețate</div>
+                <div class="small" id="liveMode">Alarmă activă • sistem tactic pe vaduri</div>
               </div>
               <div>
                 <div class="timer-main" id="liveRecast">00:00</div>
@@ -1206,6 +1217,142 @@
     return fishEvents().filter(e=>e.netId===id).reduce((s,e)=>s+(Number(e.weight)||0),0);
   }
 
+
+  function weighEvents(){
+    if(!state) return [];
+    if(!Array.isArray(state.weighings)) state.weighings = [];
+    return state.weighings;
+  }
+
+  function weighedTotal(netId=null){
+    return weighEvents()
+      .filter(w=>!netId || w.netId === netId)
+      .reduce((s,w)=>s + (Number(w.weight)||0), 0);
+  }
+
+  function netCurrentWeight(id){
+    const raw = netWeight(id);
+    const weighed = weighedTotal(id);
+    return Math.max(0, raw - weighed);
+  }
+
+  function totalOfficialWeighed(){
+    return weighedTotal();
+  }
+
+  function totalCurrentInKeepnets(){
+    if(!state || !state.keepnets) return 0;
+    return state.keepnets.reduce((s,n)=>s + netCurrentWeight(n.id), 0);
+  }
+
+  function totalRealKg(){
+    return totalOfficialWeighed() + totalCurrentInKeepnets();
+  }
+
+  function weighKeepnet(netId){
+    if(!state) return;
+    const net = state.keepnets.find(n=>n.id===netId);
+    if(!net) return;
+
+    const current = netCurrentWeight(netId);
+    if(current <= 0.001){
+      toast("Juvelnicul este deja la 0 kg.");
+      return;
+    }
+
+    const label = net.name || `Juvelnic ${netId}`;
+    const ok = confirm(`Confirmi cântărirea pentru ${label}: ${kg(current)} kg?\n\nDupă confirmare, acest juvelnic revine la 0 kg.`);
+    if(!ok) return;
+
+    if(!Array.isArray(state.weighings)) state.weighings = [];
+    const entry = {
+      id:uid(),
+      type:"weigh",
+      netId,
+      netName:label,
+      weight:Number(current.toFixed(3)),
+      at:now()
+    };
+    state.weighings.push(entry);
+
+    if(!Array.isArray(state.events)) state.events = [];
+    state.events.push({
+      id:uid(),
+      type:"weigh",
+      netId,
+      spotId:state.activeSpot,
+      weight:Number(current.toFixed(3)),
+      note:`${label} cântărit: ${kg(current)} kg`,
+      at:now()
+    });
+
+    save(true);
+    render();
+    toast(`${label} cântărit: ${kg(current)} kg`);
+  }
+
+  function renderWeighSummary(){
+    const container = $("keepnetList");
+    if(!container || !state) return;
+    let summary = $("weighSummaryBox");
+    if(!summary){
+      summary = document.createElement("div");
+      summary.id = "weighSummaryBox";
+      summary.className = "weigh-summary";
+      container.prepend(summary);
+    }
+    summary.innerHTML = `
+      <b>Cântărit oficial:</b> ${kg(totalOfficialWeighed())} kg<br>
+      <b>În juvelnice acum:</b> ${kg(totalCurrentInKeepnets())} kg<br>
+      <b>Total partidă:</b> ${kg(totalRealKg())} kg
+    `;
+  }
+
+  function enrichKeepnetWeighButtons(){
+    if(!state || !state.keepnets) return;
+    const container = $("keepnetList");
+    if(!container) return;
+
+    state.keepnets.forEach(n=>{
+      const id = n.id;
+      const existing = container.querySelector(`[data-weigh-net="${id}"]`);
+      if(existing) return;
+
+      let card = container.querySelector(`[data-net-id="${id}"]`) || container.querySelector(`[data-net="${id}"]`);
+      if(!card){
+        const cards = Array.from(container.children);
+        card = cards.find(c => c.id !== "weighSummaryBox" && c.textContent && c.textContent.includes(n.name || String(id)));
+      }
+      if(!card) return;
+
+      const btn = document.createElement("button");
+      btn.className = "btn mini weighBtn";
+      btn.type = "button";
+      btn.dataset.weighNet = id;
+      btn.textContent = "Cântărește";
+      btn.addEventListener("click", ()=>weighKeepnet(id));
+      card.appendChild(btn);
+    });
+  }
+
+  function enrichAnalysisWeighing(){
+    const box = $("analysisBox");
+    if(!box || !state) return;
+    let div = $("analysisWeighBox");
+    if(!div){
+      div = document.createElement("div");
+      div.id = "analysisWeighBox";
+      div.className = "weigh-summary";
+      box.prepend(div);
+    }
+    div.innerHTML = `
+      <b>Greutate cântărită oficial:</b> ${kg(totalOfficialWeighed())} kg<br>
+      <b>Greutate curentă în juvelnice:</b> ${kg(totalCurrentInKeepnets())} kg<br>
+      <b>Cântăriri efectuate:</b> ${weighEvents().length}
+    `;
+  }
+
+
   function spotWeight(id){
     return fishEvents().filter(e=>e.spotId===id).reduce((s,e)=>s+(Number(e.weight)||0),0);
   }
@@ -1361,7 +1508,7 @@
     const remaining = Math.max(0, (state.endAt || state.startedAt) - now());
     $("topSession").textContent = formatHMS(remaining);
     $("topFish").textContent = String(fishEvents().length);
-    $("topKg").textContent = kg(totalKg());
+    $("topKg").textContent = kg(totalRealKg());
 
     const minutesLeft = Math.ceil(remaining / 60000);
     if(remaining <= 0 && !state.timeExpiredAlert){
@@ -1431,7 +1578,7 @@
     if(!state) return;
     const s = currentSpot();
     $("liveSpot").textContent = s.name;
-    $("liveMode").textContent = `Mod o lansetă • alarmă ${alarmThresholdLabel(s.id)}`;
+    $("liveMode").textContent = `Alarmă ${alarmThresholdLabel(s.id)} • sistem tactic pe vaduri`;
     $("liveRecast").textContent = state.pendingRecast ? "Așteaptă" : (s.lastRecastAt ? formatMS(now()-s.lastRecastAt) : "--:--");
     $("recastBtn").classList.toggle("pulse", state.pendingRecast && state.pendingRecastReason === "fish");
     $("pendingRecastBox").classList.toggle("hide", !state.pendingRecast);
@@ -1456,10 +1603,13 @@
     updateLiveOnly();
     renderSpots();
     renderKeepnets();
+    enrichKeepnetWeighButtons();
+    renderWeighSummary();
     renderMounts();
     renderLog();
     renderHistory();
     renderAnalysis();
+    enrichAnalysisWeighing();
     fillNetSelects();
     $("keepLimitText").textContent = `${kg(state.netLimit)} kg / juvelnic`;
   }
@@ -1471,7 +1621,7 @@
     const activeId = chooseNet(weight);
     const n = state.keepnets.find(x=>x.id===activeId) || state.keepnets[0];
     if(!n){ holder.innerHTML = ""; return; }
-    const w = netWeight(n.id);
+    const w = netCurrentWeight(n.id);
     const [cls,label] = netStatus(w);
     const pct = Math.min(100, (w/state.netLimit)*100);
     holder.innerHTML = `
@@ -1531,7 +1681,7 @@
   function renderKeepnets(){
     const el = $("keepnetsList");
     el.innerHTML = state.keepnets.map(n=>{
-      const w = netWeight(n.id);
+      const w = netCurrentWeight(n.id);
       const count = fishEvents().filter(e=>e.netId===n.id).length;
       const [cls,label] = netStatus(w);
       const pct = Math.min(100,(w/state.netLimit)*100);
@@ -1720,7 +1870,7 @@
 
   function renderAnalysis(){
     const fish = fishEvents();
-    const total = totalKg();
+    const total = totalRealKg();
     const misses = state.events.filter(e=>e.type==="miss").length;
     const recasts = state.events.filter(e=>e.type==="recast").length;
     const bestSpot = state.spots
@@ -2107,7 +2257,7 @@
     });
   }
 
-  window.APP = { switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession };
+  window.APP = { switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet };
 
   initWeights();
   bind();
