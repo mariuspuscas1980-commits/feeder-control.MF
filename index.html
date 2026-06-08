@@ -459,6 +459,23 @@
       border:1px solid rgba(255,204,102,.38);
     }
 
+  
+    .spot-distance-row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:end;
+      margin:10px 0;
+    }
+    .spot-distance-row input{
+      width:100%;
+      min-height:44px;
+    }
+    .spot-distance-row .btn{
+      min-height:44px;
+      white-space:nowrap;
+    }
+
   </style>
 </head>
 <body>
@@ -1118,7 +1135,7 @@
     const t = now();
     const spots = Array.from({length:cfg.spots}, (_,i)=>({
       id:i, name:`Vad ${String.fromCharCode(65+i)}`,
-      activeMs:0, activatedAt:i===0?t:null, lastRecastAt:null, lastFeedAt:null, lastFishAt:null
+      activeMs:0, activatedAt:i===0?t:null, lastRecastAt:null, lastFeedAt:null, lastFishAt:null, distanceM:null
     }));
     return {
       name:cfg.name,
@@ -1620,7 +1637,7 @@
     $("liveSpot").textContent = s.name;
     $("liveMode").textContent = `Alarmă ${alarmThresholdLabel(s.id)} • sistem tactic pe vaduri`;
     $("liveRecast").textContent = state.pendingRecast ? "Așteaptă" : (s.lastRecastAt ? formatMS(now()-s.lastRecastAt) : "--:--");
-    $("recastBtn").classList.toggle("pulse", state.pendingRecast && state.pendingRecastReason === "fish");
+    $("recastBtn").classList.toggle("pulse", state.pendingRecast && (state.pendingRecastReason === "fish" || state.pendingRecastReason === "miss"));
     $("pendingRecastBox").classList.toggle("hide", !state.pendingRecast);
     if(state.pendingRecast && state.pendingRecastSince){
       const reasonText = state.pendingRecastReason === "miss"
@@ -1677,6 +1694,27 @@
     $("activeNetSmall").textContent = state.autoNet ? "Auto" : "Manual";
   }
 
+
+  function saveSpotDistance(id){
+    if(!state || !state.spots || !state.spots[id]) return;
+    const input = $(`spotDistance_${id}`);
+    if(!input) return;
+
+    const raw = String(input.value || "").replace(",", ".").replace(/[^\d.]/g, "");
+    const val = parseFloat(raw);
+
+    if(!val || val <= 0){
+      state.spots[id].distanceM = null;
+      toast(`Distanța pentru ${state.spots[id].name} a fost ștearsă.`);
+    }else{
+      state.spots[id].distanceM = Number(val.toFixed(1));
+      toast(`${state.spots[id].name}: distanță salvată ${state.spots[id].distanceM} m`);
+    }
+
+    save(true);
+    render();
+  }
+
   function renderSpots(){
     const el = $("spotsList");
     el.innerHTML = state.spots.map(s=>{
@@ -1699,9 +1737,17 @@
           <div class="name-row"><div class="badge">${String.fromCharCode(65+s.id)}</div><div><h3>${s.name}</h3><div class="small">${s.id===state.activeSpot?"activ":"înghețat"}</div></div></div>
           <button class="btn mini ${s.id===state.activeSpot?"ghost":"blue"}" onclick="APP.switchToSpot(${s.id})">${s.id===state.activeSpot?"Activ":"Treci"}</button>
         </div>
+        <div class="spot-distance-row">
+          <div class="field">
+            <label>Distanță vad</label>
+            <input id="spotDistance_${s.id}" inputmode="decimal" placeholder="ex: 90" value="${s.distanceM || ""}">
+          </div>
+          <button class="btn mini blue" type="button" onclick="APP.saveSpotDistance(${s.id})">Salvează m</button>
+        </div>
         <div class="metric-grid">
           <div class="metric"><span>Pești</span><strong>${fish}</strong></div>
           <div class="metric"><span>Kg</span><strong>${kg(w)}</strong></div>
+          <div class="metric"><span>Distanță</span><strong>${s.distanceM ? `${s.distanceM} m` : "—"}</strong></div>
           <div class="metric"><span>Ratări</span><strong>${miss}</strong></div>
           <div class="metric"><span>Timp activ</span><strong>${formatHMS(s.activeMs)}</strong></div>
           <div class="metric"><span>Pești/oră</span><strong>${rate.toFixed(1)}</strong></div>
@@ -2203,7 +2249,10 @@
     if(!Array.isArray(state.alarmHistory)){ state.alarmHistory = []; }
     const t = now();
     state.lastTick = t;
-    state.spots.forEach(s=>s.activatedAt = null);
+    state.spots.forEach(s=>{
+      s.activatedAt = null;
+      if(!("distanceM" in s)) s.distanceM = null;
+    });
     if(state.spots[state.activeSpot]) state.spots[state.activeSpot].activatedAt = t;
     setScreen(true);
     render();
@@ -2312,7 +2361,7 @@ $("saveMountBtn").addEventListener("click", saveMount);
     });
   }
 
-  window.APP = { switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet };
+  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance};
 
   initWeights();
   bind();
