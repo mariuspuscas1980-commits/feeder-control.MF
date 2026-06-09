@@ -618,6 +618,54 @@
       }
     }
 
+  
+    .setup-prestart-feed-box{
+      margin-top:12px;
+      display:block;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(216,243,90,.34);
+      background:rgba(216,243,90,.08);
+      box-shadow:0 0 0 1px rgba(216,243,90,.08) inset;
+    }
+    .setup-prestart-feed-title{
+      font-family:Barlow Condensed,sans-serif;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      color:var(--accent);
+      margin-bottom:6px;
+    }
+    .setup-prestart-feed-status{
+      font-size:13px;
+      line-height:1.35;
+      color:var(--muted);
+      margin-bottom:10px;
+    }
+    .setup-prestart-feed-status strong{
+      color:#f4ffd0;
+      font-weight:900;
+    }
+    .setup-prestart-feed-actions{
+      display:grid;
+      grid-template-columns:1fr 92px;
+      gap:8px;
+    }
+    .setup-prestart-feed-actions .btn{
+      min-height:48px;
+      width:100%;
+    }
+    @media(max-width:640px){
+      .setup-prestart-feed-actions{
+        grid-template-columns:1fr;
+      }
+      .setup-prestart-feed-box{
+        margin-top:12px;
+        padding:12px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1282,6 +1330,8 @@
 
 
 
+
+
   function getSetupHeavyFeedTimes(){
     const count = Number($("setupSpots")?.value || 1);
     return Array.from({length:count}, (_,i)=> setupHeavyFeedTimes[i] || null);
@@ -1289,14 +1339,18 @@
 
   function markSetupHeavyFeed(i){
     setupHeavyFeedTimes[i] = now();
+    const settingsForHeavyFeed = readJSON(STORAGE_KEYS.settings, null);
+    if(settingsForHeavyFeed && Array.isArray(settingsForHeavyFeed.heavyFeedTimes)){
+      setupHeavyFeedTimes = settingsForHeavyFeed.heavyFeedTimes;
+    }
     renderSetupSpotDistances();
-    toast(`Nădire grea salvată înainte de start pe Vad ${String.fromCharCode(65+i)}`);
+    toast(`Momire / nădire grea salvată înainte de start pe Vad ${String.fromCharCode(65+i)}`);
   }
 
   function clearSetupHeavyFeed(i){
     setupHeavyFeedTimes[i] = null;
     renderSetupSpotDistances();
-    toast(`Nădirea grea pentru Vad ${String.fromCharCode(65+i)} a fost ștearsă.`);
+    toast(`Momirea / nădirea grea pentru Vad ${String.fromCharCode(65+i)} a fost ștearsă.`);
   }
 
   function getSetupSpotDistances(){
@@ -1327,19 +1381,22 @@
     setupHeavyFeedTimes = setupHeavyFeedTimes.slice(0, count);
 
     holder.innerHTML = Array.from({length:count}, (_,i)=>{
-      const label = `Vad ${String.fromCharCode(65+i)}`;
+      const vadName = `Vad ${String.fromCharCode(65+i)}`;
       const saved = setupHeavyFeedTimes[i];
+      const savedTxt = saved ? `<strong>Salvat la ${timeHM(saved)}</strong>` : `nesalvat`;
       return `
         <div class="setup-distance-card">
-          <label>${label} — distanță metri</label>
+          <label>${vadName} — distanță metri</label>
           <input id="setupDistance_${i}" inputmode="decimal" placeholder="ex: ${i===0 ? "90" : "35"}" value="${oldValues[i] || ""}">
 
-          <div class="setup-heavy-feed-box">
-            <div class="setup-heavy-feed-status" id="setupHeavyFeedStatus_${i}">
-              ${saved ? `<strong>Nădire grea salvată</strong><br>${timeHM(saved)}` : "Nădire grea înainte de start: nesalvată"}
+          <div class="setup-prestart-feed-box">
+            <div class="setup-prestart-feed-title">Momit vad / Nădire grea</div>
+            <div class="setup-prestart-feed-status">
+              ${vadName}: ${savedTxt}<br>
+              <span>Se apasă înainte de începerea concursului, după ce ai momit vadul.</span>
             </div>
-            <div class="setup-heavy-feed-actions">
-              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(${i})">Nădire grea</button>
+            <div class="setup-prestart-feed-actions">
+              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(${i})">Am momit vadul</button>
               <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(${i})">Șterge</button>
             </div>
           </div>
