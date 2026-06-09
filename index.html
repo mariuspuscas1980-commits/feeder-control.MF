@@ -666,6 +666,83 @@
       }
     }
 
+  
+    .prestart-momire-panel{
+      margin-top:14px;
+      padding:14px;
+      border-radius:18px;
+      border:2px solid rgba(216,243,90,.42);
+      background:linear-gradient(135deg, rgba(216,243,90,.12), rgba(94,166,232,.07));
+      box-shadow:0 10px 30px rgba(0,0,0,.24), 0 0 0 1px rgba(216,243,90,.08) inset;
+    }
+    .prestart-momire-title{
+      font-family:Barlow Condensed,sans-serif;
+      font-size:24px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      color:var(--accent);
+      margin-bottom:6px;
+    }
+    .prestart-momire-sub{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+      margin-bottom:12px;
+    }
+    .prestart-momire-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+    .prestart-momire-card{
+      display:grid;
+      gap:8px;
+      padding:10px;
+      border-radius:16px;
+      background:rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .prestart-momire-card .vad-name{
+      font-family:Barlow Condensed,sans-serif;
+      font-size:20px;
+      font-weight:900;
+      color:var(--text);
+      text-transform:uppercase;
+    }
+    .prestart-momire-card .status{
+      min-height:32px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.25;
+    }
+    .prestart-momire-card .status strong{
+      color:#f4ffd0;
+      font-weight:900;
+    }
+    .prestart-momire-card .btn{
+      min-height:48px;
+      width:100%;
+    }
+    .prestart-momire-actions{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:7px;
+    }
+    @media(max-width:760px){
+      .prestart-momire-grid{
+        grid-template-columns:1fr;
+      }
+      .prestart-momire-title{
+        font-size:22px;
+      }
+      .prestart-momire-panel{
+        margin-top:14px;
+        padding:13px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -750,6 +827,7 @@
             <div class="field setup-distances">
               <label>Distanțe vaduri înainte de start</label>
               <div id="setupSpotDistances" class="setup-distance-grid"></div>
+              <div id="prestartMomirePanel" class="prestart-momire-panel"></div>
               <div class="small">Completează distanța pentru fiecare vad înainte de start. Exemplu: Vad A = 90 m, Vad B = 35 m.</div>
             </div>
             <div class="field">
@@ -1332,26 +1410,57 @@
 
 
 
+
+
   function getSetupHeavyFeedTimes(){
     const count = Number($("setupSpots")?.value || 1);
     return Array.from({length:count}, (_,i)=> setupHeavyFeedTimes[i] || null);
   }
 
+  function renderPrestartMomirePanel(){
+    const panel = $("prestartMomirePanel");
+    const select = $("setupSpots");
+    if(!panel || !select) return;
+
+    const count = Number(select.value || 1);
+    setupHeavyFeedTimes = setupHeavyFeedTimes.slice(0, count);
+
+    panel.innerHTML = `
+      <div class="prestart-momire-title">Momit vaduri înainte de start</div>
+      <div class="prestart-momire-sub">
+        Apeși după ce ai făcut nădirea/momirea grea pe fiecare vad, înainte să înceapă concursul.
+      </div>
+      <div class="prestart-momire-grid">
+        ${Array.from({length:count}, (_,i)=>{
+          const vad = `Vad ${String.fromCharCode(65+i)}`;
+          const saved = setupHeavyFeedTimes[i];
+          return `
+            <div class="prestart-momire-card">
+              <div class="vad-name">${vad}</div>
+              <div class="status">${saved ? `<strong>Momit salvat</strong><br>${timeHM(saved)}` : "Încă nesalvat înainte de start"}</div>
+              <div class="prestart-momire-actions">
+                <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(${i})">Am momit ${vad}</button>
+                <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(${i})">Șterge ${vad}</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
   function markSetupHeavyFeed(i){
     setupHeavyFeedTimes[i] = now();
-    const settingsForHeavyFeed = readJSON(STORAGE_KEYS.settings, null);
-    if(settingsForHeavyFeed && Array.isArray(settingsForHeavyFeed.heavyFeedTimes)){
-      setupHeavyFeedTimes = settingsForHeavyFeed.heavyFeedTimes;
-    }
-    renderSetupSpotDistances();
-    toast(`Momire / nădire grea salvată înainte de start pe Vad ${String.fromCharCode(65+i)}`);
+    renderPrestartMomirePanel();
+    toast(`Momire/nădire grea salvată înainte de start pe Vad ${String.fromCharCode(65+i)}`);
   }
 
   function clearSetupHeavyFeed(i){
     setupHeavyFeedTimes[i] = null;
-    renderSetupSpotDistances();
-    toast(`Momirea / nădirea grea pentru Vad ${String.fromCharCode(65+i)} a fost ștearsă.`);
+    renderPrestartMomirePanel();
+    toast(`Momirea/nădirea grea pentru Vad ${String.fromCharCode(65+i)} a fost ștearsă.`);
   }
+
 
   function getSetupSpotDistances(){
     const count = Number($("setupSpots")?.value || 1);
@@ -1403,6 +1512,7 @@
         </div>
       `;
     }).join("");
+    renderPrestartMomirePanel();
   }
 
   function defaultState(cfg){
@@ -2691,10 +2801,12 @@ $("saveMountBtn").addEventListener("click", saveMount);
     });
   }
 
-  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView};
+  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView, renderPrestartMomirePanel};
 
   initWeights();
   bind();
+  renderSetupSpotDistances();
+  renderPrestartMomirePanel();
   renderSetupSpotDistances();
   updateTop();
   renderMounts();
