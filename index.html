@@ -517,6 +517,107 @@
       }
     }
 
+  
+    .heavy-feed-note{
+      border-color:rgba(216,243,90,.24)!important;
+      background:rgba(216,243,90,.07)!important;
+    }
+
+  
+    .setup-heavy-feed-row{
+      margin-top:9px;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px;
+      align-items:center;
+    }
+    .setup-heavy-feed-status{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.25;
+    }
+    .setup-heavy-feed-status strong{
+      color:var(--accent);
+      font-weight:900;
+    }
+
+  
+    .spot-mobile-selector{
+      display:none;
+      gap:8px;
+      margin:0 0 12px;
+      position:sticky;
+      top:0;
+      z-index:20;
+      padding:8px 0;
+      background:linear-gradient(180deg, rgba(4,11,9,.96), rgba(4,11,9,.76));
+      backdrop-filter:blur(10px);
+    }
+    .spot-tab-btn{
+      flex:1;
+      min-height:46px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      font-family:Barlow Condensed,sans-serif;
+      font-size:18px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+      cursor:pointer;
+    }
+    .spot-tab-btn.active{
+      background:linear-gradient(135deg, rgba(216,243,90,.28), rgba(94,166,232,.22));
+      border-color:rgba(216,243,90,.5);
+      color:#f4ffd0;
+      box-shadow:0 0 0 1px rgba(216,243,90,.14) inset;
+    }
+    @media(max-width:760px){
+      .spot-mobile-selector{display:flex}
+      .spot-card.mobile-hidden{display:none}
+      #spotsList{
+        grid-template-columns:1fr!important;
+      }
+    }
+
+  
+    .setup-heavy-feed-box{
+      margin-top:10px;
+      display:grid;
+      gap:8px;
+      padding:10px;
+      border-radius:14px;
+      border:1px solid rgba(216,243,90,.22);
+      background:rgba(216,243,90,.055);
+    }
+    .setup-heavy-feed-actions{
+      display:grid;
+      grid-template-columns:1fr 96px;
+      gap:8px;
+    }
+    .setup-heavy-feed-actions .btn{
+      min-height:44px;
+      width:100%;
+    }
+    .setup-heavy-feed-status{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .setup-heavy-feed-status strong{
+      color:var(--accent);
+      font-weight:900;
+    }
+    @media(max-width:640px){
+      .setup-heavy-feed-actions{
+        grid-template-columns:1fr;
+      }
+      .setup-heavy-feed-actions .btn{
+        min-height:48px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1175,8 +1276,28 @@
 
   let selectedWeight = 1;
   let state = null;
+  let setupHeavyFeedTimes = [];
+  let selectedSpotView = 0;
   let ticker = null;
 
+
+
+  function getSetupHeavyFeedTimes(){
+    const count = Number($("setupSpots")?.value || 1);
+    return Array.from({length:count}, (_,i)=> setupHeavyFeedTimes[i] || null);
+  }
+
+  function markSetupHeavyFeed(i){
+    setupHeavyFeedTimes[i] = now();
+    renderSetupSpotDistances();
+    toast(`Nădire grea salvată înainte de start pe Vad ${String.fromCharCode(65+i)}`);
+  }
+
+  function clearSetupHeavyFeed(i){
+    setupHeavyFeedTimes[i] = null;
+    renderSetupSpotDistances();
+    toast(`Nădirea grea pentru Vad ${String.fromCharCode(65+i)} a fost ștearsă.`);
+  }
 
   function getSetupSpotDistances(){
     const count = Number($("setupSpots")?.value || 1);
@@ -1196,26 +1317,42 @@
     if(!holder || !select) return;
 
     const oldValues = [];
-    holder.querySelectorAll("input").forEach((input, idx)=>{
+    holder.querySelectorAll("input[id^='setupDistance_']").forEach((input, idx)=>{
       const raw = String(input.value || "").replace(",", ".").replace(/[^\d.]/g, "");
       const val = parseFloat(raw);
       oldValues[idx] = val && val > 0 ? Number(val.toFixed(1)) : null;
     });
 
     const count = Number(select.value || 1);
-    holder.innerHTML = Array.from({length:count}, (_,i)=>`
-      <div class="setup-distance-card">
-        <label>Vad ${String.fromCharCode(65+i)} — distanță metri</label>
-        <input id="setupDistance_${i}" inputmode="decimal" placeholder="ex: ${i===0 ? "90" : "35"}" value="${oldValues[i] || ""}">
-      </div>
-    `).join("");
+    setupHeavyFeedTimes = setupHeavyFeedTimes.slice(0, count);
+
+    holder.innerHTML = Array.from({length:count}, (_,i)=>{
+      const label = `Vad ${String.fromCharCode(65+i)}`;
+      const saved = setupHeavyFeedTimes[i];
+      return `
+        <div class="setup-distance-card">
+          <label>${label} — distanță metri</label>
+          <input id="setupDistance_${i}" inputmode="decimal" placeholder="ex: ${i===0 ? "90" : "35"}" value="${oldValues[i] || ""}">
+
+          <div class="setup-heavy-feed-box">
+            <div class="setup-heavy-feed-status" id="setupHeavyFeedStatus_${i}">
+              ${saved ? `<strong>Nădire grea salvată</strong><br>${timeHM(saved)}` : "Nădire grea înainte de start: nesalvată"}
+            </div>
+            <div class="setup-heavy-feed-actions">
+              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(${i})">Nădire grea</button>
+              <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(${i})">Șterge</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
   function defaultState(cfg){
     const t = now();
     const spots = Array.from({length:cfg.spots}, (_,i)=>({
       id:i, name:`Vad ${String.fromCharCode(65+i)}`,
-      activeMs:0, activatedAt:i===0?t:null, lastRecastAt:null, lastFeedAt:null, lastFishAt:null, distanceM:Array.isArray(cfg.spotDistances) ? (cfg.spotDistances[i] || null) : null
+      activeMs:0, activatedAt:i===0?t:null, lastRecastAt:null, lastFeedAt:null, lastFishAt:null, lastHeavyFeedAt:Array.isArray(cfg.heavyFeedTimes) ? (cfg.heavyFeedTimes[i] || null) : null, distanceM:Array.isArray(cfg.spotDistances) ? (cfg.spotDistances[i] || null) : null
     }));
     return {
       name:cfg.name,
@@ -1805,15 +1942,26 @@
     render();
   }
 
+
+  function selectSpotView(id){
+    selectedSpotView = id;
+    render();
+  }
+
   function renderSpots(){
+    selectedSpotView = Math.min(Math.max(0, selectedSpotView || 0), state.spots.length - 1);
+    const selectorHtml = `<div class="spot-mobile-selector">
+      ${state.spots.map(s=>`<button type="button" class="spot-tab-btn ${s.id === selectedSpotView ? "active" : ""}" onclick="APP.selectSpotView(${s.id})">${s.name}</button>`).join("")}
+    </div>`;
     const el = $("spotsList");
-    el.innerHTML = state.spots.map(s=>{
+    el.innerHTML = selectorHtml + state.spots.map(s=>{
       const fish = eventsForSpot(s.id,"fish").length;
       const miss = eventsForSpot(s.id,"miss").length;
       const w = spotWeight(s.id);
       const h = s.activeMs/3600000;
       const rate = h>0 ? fish/h : 0;
       const lastFeed = s.lastFeedAt ? `${Math.floor((now()-s.lastFeedAt)/60000)} min` : "—";
+      const lastHeavyFeed = s.lastHeavyFeedAt ? `${Math.floor((now()-s.lastHeavyFeedAt)/60000)} min` : "—";
       const lastFish = s.lastFishAt ? `${Math.floor((now()-s.lastFishAt)/60000)} min` : "—";
       const avgInterval = averageFishIntervalMs(s.id);
       const lastInterval = lastFishIntervalMs(s.id);
@@ -1822,7 +1970,7 @@
       const tactical = spotTacticalText(s);
       const tacticalClass = emptyRecasts >= 3 ? "warn" : "";
       return `
-      <div class="spot-card ${s.id===state.activeSpot?"active":"frozen"}">
+      <div class="spot-card ${s.id===state.activeSpot?"active":"frozen"} ${s.id !== selectedSpotView ? "mobile-hidden" : ""}">
         <div class="spot-head">
           <div class="name-row"><div class="badge">${String.fromCharCode(65+s.id)}</div><div><h3>${s.name}</h3><div class="small">${s.id===state.activeSpot?"activ":"înghețat"}</div></div></div>
           <button class="btn mini ${s.id===state.activeSpot?"ghost":"blue"}" onclick="APP.switchToSpot(${s.id})">${s.id===state.activeSpot?"Activ":"Treci"}</button>
@@ -1842,6 +1990,7 @@
           <div class="metric"><span>Timp activ</span><strong>${formatHMS(s.activeMs)}</strong></div>
           <div class="metric"><span>Pești/oră</span><strong>${rate.toFixed(1)}</strong></div>
           <div class="metric"><span>Ultima momire</span><strong>${lastFeed}</strong></div>
+          <div class="metric"><span>Nădire grea</span><strong>${lastHeavyFeed}</strong></div>
           <div class="metric"><span>Media între capturi</span><strong>${shortDuration(avgInterval)}</strong></div>
           <div class="metric"><span>Ultimul interval</span><strong>${shortDuration(lastInterval)}</strong></div>
           <div class="metric"><span>Relansări fără pește</span><strong>${emptyRecasts}</strong></div>
@@ -1850,6 +1999,7 @@
           <div class="metric"><span>Eficiență kg/oră</span><strong>${h>0 ? (w/h).toFixed(1) : "0.0"}</strong></div>
           <div class="metric"><span>Prag alarmă</span><strong>${alarmThresholdLabel(s.id)}</strong></div>
         </div>
+        ${s.lastHeavyFeedAt ? `<div class="notice heavy-feed-note">Nădire grea pe ${s.name}: acum ${Math.floor((now()-s.lastHeavyFeedAt)/60000)} min${s.distanceM ? ` • ${s.distanceM} m` : ""}</div>` : ""}
         <div class="notice ${tacticalClass}">${tactical}</div>
       </div>`;
     }).join("");
@@ -2119,6 +2269,7 @@
       old.activatedAt = null;
     }
     state.activeSpot = id;
+    selectedSpotView = id;
     state.spots[id].activatedAt = t;
     state.lastTick = t;
     addEvent("switch", `Schimbare pe ${state.spots[id].name}`);
@@ -2163,6 +2314,8 @@
     addEvent("miss", `Trăsătură ratată`);
     toast("Ratare salvată. Apasă Relansare după ce lansezi din nou.");
   }
+
+
 
   function feed(){
     const s = currentSpot();
@@ -2314,6 +2467,7 @@
       durationMin,
       spots:isPro() ? Number($("setupSpots").value) : 1,
       spotDistances:getSetupSpotDistances(),
+      heavyFeedTimes:getSetupHeavyFeedTimes(),
       keepnets:isPro() ? Number($("setupKeepnets").value) : 1,
       netLimit,
       recastMin:Number($("setupRecast").value),
@@ -2329,6 +2483,7 @@
       durationMin,
       spots:Number($("setupSpots").value),
       spotDistances:getSetupSpotDistances(),
+      heavyFeedTimes:getSetupHeavyFeedTimes(),
       keepnets:Number($("setupKeepnets").value),
       netLimit,
       recastMin:Number($("setupRecast").value),
@@ -2365,6 +2520,7 @@
     state.spots.forEach(s=>{
       s.activatedAt = null;
       if(!("distanceM" in s)) s.distanceM = null;
+      if(!("lastHeavyFeedAt" in s)) s.lastHeavyFeedAt = null;
     });
     if(state.spots[state.activeSpot]) state.spots[state.activeSpot].activatedAt = t;
     setScreen(true);
@@ -2478,7 +2634,7 @@ $("saveMountBtn").addEventListener("click", saveMount);
     });
   }
 
-  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal};
+  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView};
 
   initWeights();
   bind();
