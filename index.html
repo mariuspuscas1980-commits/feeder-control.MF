@@ -743,6 +743,89 @@
       }
     }
 
+  
+    .setup-momit-top{
+      margin:14px 0 18px;
+      padding:14px;
+      border-radius:20px;
+      border:2px solid rgba(216,243,90,.5);
+      background:linear-gradient(135deg, rgba(216,243,90,.15), rgba(94,166,232,.08));
+      box-shadow:0 12px 32px rgba(0,0,0,.26), 0 0 0 1px rgba(216,243,90,.12) inset;
+    }
+    .setup-momit-top-title{
+      font-family:Barlow Condensed,sans-serif;
+      font-size:26px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      color:var(--accent);
+      margin-bottom:7px;
+    }
+    .setup-momit-top-sub{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+      margin-bottom:12px;
+    }
+    .setup-momit-top-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+    .setup-momit-top-card{
+      display:grid;
+      gap:8px;
+      padding:10px;
+      border-radius:16px;
+      background:rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.11);
+    }
+    .setup-momit-top-card.is-hidden{
+      display:none;
+    }
+    .setup-momit-top-card .vad-title{
+      font-family:Barlow Condensed,sans-serif;
+      font-size:21px;
+      line-height:1;
+      font-weight:900;
+      text-transform:uppercase;
+      color:var(--text);
+    }
+    .setup-momit-top-card .vad-status{
+      font-size:12px;
+      line-height:1.3;
+      min-height:32px;
+      color:var(--muted);
+    }
+    .setup-momit-top-card .vad-status strong{
+      color:#f4ffd0;
+      font-weight:900;
+    }
+    .setup-momit-top-card .btn{
+      width:100%;
+      min-height:48px;
+    }
+    @media(max-width:760px){
+      .setup-momit-top{
+        margin:12px 0 16px;
+        padding:13px;
+      }
+      .setup-momit-top-title{
+        font-size:23px;
+      }
+      .setup-momit-top-grid{
+        grid-template-columns:1fr;
+      }
+      .setup-momit-top-card{
+        padding:11px;
+      }
+      .setup-momit-top-card .btn{
+        min-height:50px;
+        font-size:15px;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -805,6 +888,39 @@
           <h2>Setup partidă</h2>
           <span class="small">Feeder Control • TFL</span>
         </div>
+        <div id="setupMomitTop" class="setup-momit-top">
+          <div class="setup-momit-top-title">Momit vaduri înainte de start</div>
+          <div class="setup-momit-top-sub">
+            Apeși după ce ai momit / nădit greu fiecare vad, înainte să înceapă concursul. Aplicația ține timpul de la momire.
+          </div>
+          <div class="setup-momit-top-grid">
+            <div class="setup-momit-top-card" data-setup-momit-card="0">
+              <div class="vad-title">Vad A</div>
+              <div class="vad-status" id="setupMomitStatus_0">Încă nesalvat</div>
+              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(0)">Am momit Vad A</button>
+              <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(0)">Șterge Vad A</button>
+            </div>
+            <div class="setup-momit-top-card" data-setup-momit-card="1">
+              <div class="vad-title">Vad B</div>
+              <div class="vad-status" id="setupMomitStatus_1">Încă nesalvat</div>
+              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(1)">Am momit Vad B</button>
+              <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(1)">Șterge Vad B</button>
+            </div>
+            <div class="setup-momit-top-card" data-setup-momit-card="2">
+              <div class="vad-title">Vad C</div>
+              <div class="vad-status" id="setupMomitStatus_2">Încă nesalvat</div>
+              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(2)">Am momit Vad C</button>
+              <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(2)">Șterge Vad C</button>
+            </div>
+            <div class="setup-momit-top-card" data-setup-momit-card="3">
+              <div class="vad-title">Vad D</div>
+              <div class="vad-status" id="setupMomitStatus_3">Încă nesalvat</div>
+              <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(3)">Am momit Vad D</button>
+              <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(3)">Șterge Vad D</button>
+            </div>
+          </div>
+        </div>
+
         <div class="grid">
           <div class="field">
             <label>Nume lac / partidă</label>
@@ -1412,52 +1528,45 @@
 
 
 
+
+
+
   function getSetupHeavyFeedTimes(){
     const count = Number($("setupSpots")?.value || 1);
     return Array.from({length:count}, (_,i)=> setupHeavyFeedTimes[i] || null);
   }
 
-  function renderPrestartMomirePanel(){
-    const panel = $("prestartMomirePanel");
+  function renderSetupMomitTop(){
     const select = $("setupSpots");
-    if(!panel || !select) return;
-
-    const count = Number(select.value || 1);
+    const count = Number(select?.value || 1);
     setupHeavyFeedTimes = setupHeavyFeedTimes.slice(0, count);
 
-    panel.innerHTML = `
-      <div class="prestart-momire-title">Momit vaduri înainte de start</div>
-      <div class="prestart-momire-sub">
-        Apeși după ce ai făcut nădirea/momirea grea pe fiecare vad, înainte să înceapă concursul.
-      </div>
-      <div class="prestart-momire-grid">
-        ${Array.from({length:count}, (_,i)=>{
-          const vad = `Vad ${String.fromCharCode(65+i)}`;
-          const saved = setupHeavyFeedTimes[i];
-          return `
-            <div class="prestart-momire-card">
-              <div class="vad-name">${vad}</div>
-              <div class="status">${saved ? `<strong>Momit salvat</strong><br>${timeHM(saved)}` : "Încă nesalvat înainte de start"}</div>
-              <div class="prestart-momire-actions">
-                <button class="btn secondary" type="button" onclick="APP.markSetupHeavyFeed(${i})">Am momit ${vad}</button>
-                <button class="btn ghost" type="button" onclick="APP.clearSetupHeavyFeed(${i})">Șterge ${vad}</button>
-              </div>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    `;
+    document.querySelectorAll("[data-setup-momit-card]").forEach(card=>{
+      const idx = Number(card.dataset.setupMomitCard);
+      card.classList.toggle("is-hidden", idx >= count);
+      const status = $(`setupMomitStatus_${idx}`);
+      if(status){
+        const saved = setupHeavyFeedTimes[idx];
+        status.innerHTML = saved ? `<strong>Momit salvat</strong><br>${timeHM(saved)} • au trecut ${Math.floor((now()-saved)/60000)} min` : "Încă nesalvat înainte de start";
+      }
+    });
+
+    const oldPanel = $("prestartMomirePanel");
+    if(oldPanel){
+      oldPanel.innerHTML = "";
+      oldPanel.style.display = "none";
+    }
   }
 
   function markSetupHeavyFeed(i){
     setupHeavyFeedTimes[i] = now();
-    renderPrestartMomirePanel();
+    renderSetupMomitTop();
     toast(`Momire/nădire grea salvată înainte de start pe Vad ${String.fromCharCode(65+i)}`);
   }
 
   function clearSetupHeavyFeed(i){
     setupHeavyFeedTimes[i] = null;
-    renderPrestartMomirePanel();
+    renderSetupMomitTop();
     toast(`Momirea/nădirea grea pentru Vad ${String.fromCharCode(65+i)} a fost ștearsă.`);
   }
 
@@ -1512,7 +1621,8 @@
         </div>
       `;
     }).join("");
-    renderPrestartMomirePanel();
+
+    renderSetupMomitTop();
   }
 
   function defaultState(cfg){
@@ -2752,7 +2862,7 @@
     document.addEventListener("click", unlockAudio, {once:true});
     const setupSpotsDistanceBind = $("setupSpots");
     if(setupSpotsDistanceBind){
-      setupSpotsDistanceBind.addEventListener("change", renderSetupSpotDistances);
+      setupSpotsDistanceBind.addEventListener("change", ()=>{ renderSetupSpotDistances(); renderSetupMomitTop(); });
     }
 
     const testAlarmBtn = $("testAlarmBtn");
@@ -2801,10 +2911,12 @@ $("saveMountBtn").addEventListener("click", saveMount);
     });
   }
 
-  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView, renderPrestartMomirePanel};
+  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView, renderSetupMomitTop};
 
   initWeights();
   bind();
+  renderSetupSpotDistances();
+  renderSetupMomitTop();
   renderSetupSpotDistances();
   renderPrestartMomirePanel();
   renderSetupSpotDistances();
