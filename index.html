@@ -1078,7 +1078,6 @@
             <div class="quick-actions">
               <button class="btn" id="recastBtn">Relansare</button>
               <button class="btn ok" id="fishBtn">Pește prins</button>
-              <button class="btn warn" id="missBtn">Ratat</button>
               <button class="btn secondary" id="feedBtn">Momire</button>
               <button class="btn blue" id="switchBtn">Schimbă vad</button>
               <button class="btn ghost" id="noteBtn">Notiță</button>
@@ -1222,6 +1221,7 @@
       </div>
       <div class="notice" id="fishNetHint">Auto alege juvelnicul care nu depășește limita.</div>
       <button class="btn ok" id="saveFishBtn" style="width:100%; margin-top:10px">Salvează captura</button>
+          <button class="btn danger" id="lostFishBtn" type="button">Ratat / scăpat</button>
     </div>
   </div>
 
@@ -2634,6 +2634,35 @@
     render();
   }
 
+
+  function saveLostFish(){
+    if(!state) return;
+
+    const fishTs = state.fishHookedAt || now();
+    const s = currentSpot();
+
+    if(s){
+      s.lastFishAt = fishTs;
+    }
+
+    addEvent("miss", `Pește scăpat / ratat după trăsătură`, {
+      hookedAt:fishTs,
+      lostAfterHook:true,
+      recastElapsed:state.fishHookedRecastElapsed || null
+    });
+
+    state.pendingRecast = true;
+    state.pendingRecastSince = fishTs;
+    state.pendingRecastReason = "miss";
+    state.fishHookedAt = null;
+    state.fishHookedRecastElapsed = null;
+
+    closeModal("fishModal");
+    toast("Ratat / scăpat salvat. Apasă Relansare după ce lansezi din nou.");
+    save(true);
+    render();
+  }
+
   function saveFish(){
     const custom = parseFloat($("fishCustomKg").value);
     const weight = custom > 0 ? custom : selectedWeight;
@@ -2889,11 +2918,11 @@
     $("restoreBtn").addEventListener("click", restore);
     $("recastBtn").addEventListener("click", recast);
     $("fishBtn").addEventListener("click", openFish);
-    $("missBtn").addEventListener("click", miss);
     $("feedBtn").addEventListener("click", feed);
     $("switchBtn").addEventListener("click", nextSpot);
     $("noteBtn").addEventListener("click",()=>openModal("noteModal"));
     $("saveFishBtn").addEventListener("click", saveFish);
+    $("lostFishBtn").addEventListener("click", saveLostFish);
     $("saveNoteBtn").addEventListener("click", saveNote);
     $("saveEditFishBtn").addEventListener("click", saveEditFish);
     $("deleteFishBtn").addEventListener("click", deleteFish);
@@ -2917,7 +2946,7 @@ $("saveMountBtn").addEventListener("click", saveMount);
     });
   }
 
-  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView, renderSetupMomitTop};
+  window.APP = {switchToSpot:switchSpot, openEditFish, deleteMount, loadHistorySession, deleteHistorySession, weighKeepnet, saveSpotDistance, cancelFishModal, markSetupHeavyFeed, clearSetupHeavyFeed, selectSpotView, renderSetupMomitTop, saveLostFish};
 
   initWeights();
   bind();
